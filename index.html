@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- The GitHub Pages redirect to the vault UI, rendered by app/sb-publish-url (https://davis-unexpected-cayman-below.trycloudflare.com is the tunnel address
+     when this copy was published). It asks the GitHub API for the newest url.txt first, because Pages caches
+     pages for up to 10 minutes, and forwards #/Page links. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Silicon Bridge</title>
+<style>
+  :root { --bg: #fff; --fg: #222; --muted: #777; --link: #6a4fd0; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1e1e1e; --fg: #ddd; --muted: #999; --link: #b39dff; } }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; padding: 16px; box-sizing: border-box; text-align: center; }
+  p { margin: 4px 0; } small { color: var(--muted); } a { color: var(--link); }
+</style>
+<script>
+  const PUBLISHED = 'https://davis-unexpected-cayman-below.trycloudflare.com', REPO = 'danrsm/sbi';
+  const ok = u => /^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/?$/.test(u);
+  const go = u => location.replace(u.replace(/\/$/, '') + '/' + location.hash);
+  fetch(`https://api.github.com/repos/${REPO}/contents/url.txt`, { cache: 'no-store', headers: { Accept: 'application/vnd.github.raw' } })
+    .then(r => r.ok ? r.text() : Promise.reject())
+    .then(u => ok(u.trim()) ? u.trim() : PUBLISHED, () => PUBLISHED)
+    .then(u => ok(u) ? go(u) : document.getElementById('msg').textContent = 'The vault is not available right now.');
+</script>
+</head>
+<body>
+<div>
+  <p id="msg">Opening the Silicon Bridge vault…</p>
+  <p><small>If nothing happens, <a href="https://davis-unexpected-cayman-below.trycloudflare.com">continue here</a>.</small></p>
+</div>
+</body>
+</html>
