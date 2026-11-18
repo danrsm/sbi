@@ -1,7 +1,10 @@
 <!doctype html>
-<!-- The GitHub Pages redirect to the vault UI, rendered by app/sb-publish-url (https://davis-unexpected-cayman-below.trycloudflare.com is the tunnel address
+<!-- The GitHub Pages front door to the vault UI, rendered by app/sb-publish-url (https://davis-unexpected-cayman-below.trycloudflare.com is the tunnel address
      when this copy was published). It asks the GitHub API for the newest url.txt first, because Pages caches
-     pages for up to 10 minutes, and forwards #/Page links. -->
+     pages for up to 10 minutes, and forwards #/Page links.
+     With ?login it shows the login form instead (the server sends people here when SB_LOGIN_PAGE is set):
+     the form lives on this fixed address so browsers keep the saved password when the tunnel address
+     changes. It posts straight to the server; nothing is sent to GitHub. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -9,25 +12,52 @@
 <meta name="robots" content="noindex">
 <title>Silicon Bridge</title>
 <style>
-  :root { --bg: #fff; --fg: #222; --muted: #777; --link: #6a4fd0; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1e1e1e; --fg: #ddd; --muted: #999; --link: #b39dff; } }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; padding: 16px; box-sizing: border-box; text-align: center; }
-  p { margin: 4px 0; } small { color: var(--muted); } a { color: var(--link); }
+  :root { --bg: #f6f6f4; --card: #fff; --fg: #222; --muted: #777; --border: #ddd; --accent: #6a4fd0; --err: #c0392b; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1b1b1d; --card: #252528; --fg: #ddd; --muted: #999; --border: #3a3a3e; --accent: #a882ff; --err: #ef6b5b; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; padding: 16px; }
+  #wait { text-align: center; } #wait p { margin: 4px 0; } small { color: var(--muted); } a { color: var(--accent); }
+  form { width: 100%; max-width: 320px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; display: grid; gap: 12px; }
+  h1 { margin: 0 0 4px; font-size: 18px; }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); }
+  button { font: inherit; padding: 9px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; cursor: pointer; }
+  #err { color: var(--err); font-size: 13px; margin: 0; }
 </style>
+</head>
+<body>
+<div id="wait">
+  <p id="msg">Opening the Silicon Bridge vault…</p>
+  <p><small>If nothing happens, <a id="direct" href="https://davis-unexpected-cayman-below.trycloudflare.com">continue here</a>.</small></p>
+</div>
+<form id="f" method="post" hidden>
+  <h1>Silicon Bridge vault</h1>
+  <label>Name <input name="user" autocomplete="username" autocapitalize="none" required></label>
+  <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+  <input type="hidden" name="hash">
+  <button>Log in</button>
+  <p id="err" hidden></p>
+</form>
 <script>
   const PUBLISHED = 'https://davis-unexpected-cayman-below.trycloudflare.com', REPO = 'danrsm/sbi';
   const ok = u => /^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/?$/.test(u);
-  const go = u => location.replace(u.replace(/\/$/, '') + '/' + location.hash);
+  const q = new URLSearchParams(location.search);
   fetch(`https://api.github.com/repos/${REPO}/contents/url.txt`, { cache: 'no-store', headers: { Accept: 'application/vnd.github.raw' } })
     .then(r => r.ok ? r.text() : Promise.reject())
     .then(u => ok(u.trim()) ? u.trim() : PUBLISHED, () => PUBLISHED)
-    .then(u => ok(u) ? go(u) : document.getElementById('msg').textContent = 'The vault is not available right now.');
+    .then(u => {
+      if (!ok(u)) { document.getElementById('msg').textContent = 'The vault is not available right now.'; return; }
+      const base = u.replace(/\/$/, '');
+      document.getElementById('direct').href = base + '/' + location.hash;
+      if (!q.has('login')) { location.replace(base + '/' + location.hash); return; }
+      const f = document.getElementById('f');
+      f.action = base + '/api/login-form';
+      f.hash.value = location.hash;
+      if (q.get('error')) { const e = document.getElementById('err'); e.hidden = false; e.textContent = q.get('error'); }
+      document.getElementById('wait').hidden = true;
+      f.hidden = false;
+      (f.user.value ? f.password : f.user).focus();
+    });
 </script>
-</head>
-<body>
-<div>
-  <p id="msg">Opening the Silicon Bridge vault…</p>
-  <p><small>If nothing happens, <a href="https://davis-unexpected-cayman-below.trycloudflare.com">continue here</a>.</small></p>
-</div>
 </body>
 </html>
